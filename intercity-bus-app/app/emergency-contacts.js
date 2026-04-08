@@ -279,8 +279,8 @@ export default function EmergencyContactsScreen() {
               <Input label="Phone" value={phone} onChangeText={setPhone} placeholder="+94 7X XXX XXXX" keyboardType="phone-pad" editable={!isReadOnly} />
               <Input label="Email" value={email} onChangeText={setEmail} placeholder="Optional email" keyboardType="email-address" editable={!isReadOnly} />
 
-              <Text style={styles.dropdownLabel}>DRIVER'S BLOOD GROUP</Text>
-              <Text style={styles.formNote}>Note: Driver's blood group so emergency responders can know the blood group of driver.</Text>
+              <Text style={styles.dropdownLabel}>{actorRole?.toLowerCase() === 'passenger' ? "PASSENGER'S" : "DRIVER'S"} BLOOD GROUP</Text>
+              <Text style={styles.formNote}>Note: {actorRole?.toLowerCase() === 'passenger' ? "Passenger's" : "Driver's"} blood group so emergency responders can know the blood group of {actorRole?.toLowerCase() === 'passenger' ? "passenger" : "driver"}.</Text>
               <View style={styles.bloodGroupGrid}>
                 {BLOOD_GROUPS.map(bg => (
                   <TouchableOpacity

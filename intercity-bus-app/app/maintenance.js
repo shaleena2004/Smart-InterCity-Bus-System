@@ -8,7 +8,7 @@ import { API_BASE } from '../services/api';
 
 export default function FleetMaintenanceScreen() {
   const router = useRouter();
-  const { role, adminRole } = useLocalSearchParams();
+  const { role, adminRole, phone } = useLocalSearchParams();
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -33,8 +33,16 @@ export default function FleetMaintenanceScreen() {
     try {
       setLoading(true);
       setError('');
-      const response = await fetch(`${API_BASE}/vehicles`, { headers: { 'x-user-role': role || adminRole } });
-      if (!response.ok) throw new Error('Failed to fetch fleet data');
+      const response = await fetch(`${API_BASE}/vehicles`, { 
+        headers: { 
+          'x-user-role': role || adminRole,
+          'x-user-phone': phone
+        } 
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch fleet data');
+      }
       const data = await response.json();
       const fleet = data.vehicles || [];
       setVehicles(fleet);
@@ -135,7 +143,7 @@ export default function FleetMaintenanceScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#FFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Fleet Maintenance</Text>
+        <Text style={styles.headerTitle}>{role === 'driver' ? 'My Vehicle' : 'Fleet'} Maintenance</Text>
         <TouchableOpacity onPress={fetchFleet} style={{ padding: 5 }}>
           <Ionicons name="reload" size={20} color="#FFF" />
         </TouchableOpacity>
@@ -147,27 +155,29 @@ export default function FleetMaintenanceScreen() {
       >
         <AlertBanner type="error" message={error} onRetry={() => fetchFleet()} />
 
-        <View style={styles.summaryGrid}>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryValue}>{totalVehicles}</Text>
-            <Text style={styles.summaryLabel}>Total Fleet</Text>
+        {vehicles.length > 1 && (
+          <View style={styles.summaryGrid}>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryValue}>{totalVehicles}</Text>
+              <Text style={styles.summaryLabel}>Total Fleet</Text>
+            </View>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryValue}>{maintenanceDue}</Text>
+              <Text style={styles.summaryLabel}>Off Road</Text>
+            </View>
+            <View style={[styles.summaryCard, { borderColor: highRisk > 0 ? '#ff4444' : '#333' }]}>
+              <Text style={[styles.summaryValue, { color: highRisk > 0 ? '#ff4444' : '#FFF' }]}>{highRisk}</Text>
+              <Text style={styles.summaryLabel}>High Risk</Text>
+            </View>
           </View>
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryValue}>{maintenanceDue}</Text>
-            <Text style={styles.summaryLabel}>Off Road</Text>
-          </View>
-          <View style={[styles.summaryCard, { borderColor: highRisk > 0 ? '#ff4444' : '#333' }]}>
-            <Text style={[styles.summaryValue, { color: highRisk > 0 ? '#ff4444' : '#FFF' }]}>{highRisk}</Text>
-            <Text style={styles.summaryLabel}>High Risk</Text>
-          </View>
-        </View>
+        )}
 
         <Text style={styles.sectionTitle}>Vehicles Overview</Text>
 
         {vehicles.length === 0 && !loading ? (
            <View style={styles.emptyStateContainer}>
             <Ionicons name="bus-outline" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>No vehicles registered</Text>
+            <Text style={styles.emptyTitle}>{role === 'driver' ? 'No vehicle assigned' : 'No vehicles registered'}</Text>
           </View>
         ) : (
           vehicles.map((vehicle) => {

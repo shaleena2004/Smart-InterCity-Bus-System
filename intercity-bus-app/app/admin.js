@@ -470,8 +470,8 @@ export default function AdminScreen() {
 
 
   const handleChangePassword = async () => {
-    if (!newPassword || newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters.');
+    if (!newPassword || newPassword.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters.');
       return;
     }
 
@@ -857,39 +857,45 @@ export default function AdminScreen() {
             </View>
 
             <View style={[styles.sectionCard, { marginTop: 25 }]}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, zIndex: 10, paddingVertical: 10 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Ionicons name="shield-checkmark" size={22} color={Colors.primary} style={{ marginRight: 8 }} />
-                  <Text style={[styles.sectionTitle, { color: Colors.primary, marginBottom: 0 }]}>RISK & PREVENTIVE ALERTS</Text>
+              <View style={{ marginBottom: 15, zIndex: 10, paddingVertical: 5 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons name="shield-checkmark" size={22} color={Colors.primary} style={{ marginRight: 8 }} />
+                    <Text style={[styles.sectionTitle, { color: Colors.primary, marginBottom: 0, fontSize: 16 }]}>RISK & PREVENTIVE ALERTS</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setRiskAnalysisVisible(!riskAnalysisVisible)} style={{ padding: 5 }}>
+                    <Ionicons name={riskAnalysisVisible ? "chevron-up" : "chevron-down"} size={22} color={Colors.primary} />
+                  </TouchableOpacity>
                 </View>
+
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <View style={{ position: 'relative', zIndex: 50 }}>
                     <TouchableOpacity
-                      style={{ marginRight: 15, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 5, borderWidth: 1, borderColor: '#555', flexDirection: 'row', alignItems: 'center' }}
+                      style={{ marginRight: 15, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, borderWidth: 1, borderColor: '#555', flexDirection: 'row', alignItems: 'center', minWidth: 100 }}
                       onPress={() => setAnalysisDropdownVisible(!analysisDropdownVisible)}
                     >
-                      <Text style={{ color: '#FFF', fontSize: 10, fontWeight: 'bold', marginRight: 5 }}>
+                      <Text style={{ color: '#FFF', fontSize: 12, fontWeight: 'bold', marginRight: 8 }}>
                         {selectedAnalysisBus === 'ALL' ? 'ALL BUSES' : selectedAnalysisBus}
                       </Text>
-                      <Ionicons name="caret-down" size={10} color="#FFF" />
+                      <Ionicons name="caret-down" size={12} color="#FFF" />
                     </TouchableOpacity>
 
                     {analysisDropdownVisible && (
-                      <View style={{ position: 'absolute', top: 30, right: 15, width: 140, backgroundColor: '#1A1A1A', borderRadius: 8, borderWidth: 1, borderColor: '#333', overflow: 'hidden', zIndex: 100 }}>
+                      <View style={{ position: 'absolute', top: 40, left: 0, width: 150, backgroundColor: '#1A1A1A', borderRadius: 8, borderWidth: 1, borderColor: '#333', overflow: 'hidden', zIndex: 100 }}>
                         <TouchableOpacity
-                          style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#333', backgroundColor: selectedAnalysisBus === 'ALL' ? 'rgba(255,215,0,0.1)' : 'transparent' }}
+                          style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#333', backgroundColor: selectedAnalysisBus === 'ALL' ? 'rgba(255,215,0,0.1)' : 'transparent' }}
                           onPress={() => { setSelectedAnalysisBus('ALL'); setAnalysisDropdownVisible(false); }}
                         >
-                          <Text style={{ color: selectedAnalysisBus === 'ALL' ? Colors.primary : '#FFF', fontSize: 12 }}>All Buses</Text>
+                          <Text style={{ color: selectedAnalysisBus === 'ALL' ? Colors.primary : '#FFF', fontSize: 13 }}>All Buses</Text>
                         </TouchableOpacity>
-                        <ScrollView style={{ maxHeight: 150 }} nestedScrollEnabled={true}>
+                        <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled={true}>
                           {vehicles.map(v => (
                             <TouchableOpacity
                               key={`dp-${v._id || v.vehicleId || Math.random()}`}
-                              style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#333', backgroundColor: selectedAnalysisBus === (v.busNumber || v.vehicleId) ? 'rgba(255,215,0,0.1)' : 'transparent' }}
+                              style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#333', backgroundColor: selectedAnalysisBus === (v.busNumber || v.vehicleId) ? 'rgba(255,215,0,0.1)' : 'transparent' }}
                               onPress={() => { setSelectedAnalysisBus(v.busNumber || v.vehicleId); setAnalysisDropdownVisible(false); }}
                             >
-                              <Text style={{ color: selectedAnalysisBus === (v.busNumber || v.vehicleId) ? Colors.primary : '#AAA', fontSize: 12 }} numberOfLines={1}>
+                              <Text style={{ color: selectedAnalysisBus === (v.busNumber || v.vehicleId) ? Colors.primary : '#AAA', fontSize: 13 }} numberOfLines={1}>
                                 {v.busNumber || v.vehicleId}
                               </Text>
                             </TouchableOpacity>
@@ -898,15 +904,15 @@ export default function AdminScreen() {
                       </View>
                     )}
                   </View>
+
                   <TouchableOpacity
-                    style={{ marginRight: 15, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: 'rgba(255, 215, 0, 0.1)', borderRadius: 5, borderWidth: 1, borderColor: '#FFD700' }}
+                    style={{ flex: 1, paddingVertical: 10, backgroundColor: 'rgba(255, 215, 0, 0.1)', borderRadius: 8, borderWidth: 1, borderColor: '#FFD700', alignItems: 'center' }}
                     onPress={runRiskAnalysis}
                     disabled={analyzingRisk}
                   >
-                    <Text style={{ color: '#FFD700', fontSize: 10, fontWeight: 'bold' }}>{analyzingRisk ? 'ANALYZING...' : 'RUN ANALYSIS'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setRiskAnalysisVisible(!riskAnalysisVisible)}>
-                    <Ionicons name={riskAnalysisVisible ? "chevron-up" : "chevron-down"} size={20} color={Colors.primary} />
+                    <Text style={{ color: '#FFD700', fontSize: 12, fontWeight: 'bold' }}>
+                      {analyzingRisk ? 'ANALYZING...' : 'RUN RISK ANALYSIS'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>

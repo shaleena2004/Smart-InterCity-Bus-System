@@ -103,7 +103,7 @@ export default function ActiveTripScreen() {
             <Button 
               title={isDriver ? 'MAINTENANCE' : 'BUS DETAILS'} 
               style={styles.flexBtn} 
-              onPress={() => router.push(isDriver ? '/maintenance' : '/bus-details')}
+              onPress={() => router.push({ pathname: isDriver ? '/maintenance' : '/bus-details', params: { role, phone } })}
             />
           </View>
 

@@ -16,11 +16,9 @@ const getDevHost = () => {
   return 'localhost';
 };
 
-const DEV_HOST = getDevHost();
+const LOCAL_IP = '192.168.0.31';
 const PORT = '5001';
 
-export const API_BASE = Platform.OS === 'web'
-  ? `http://localhost:${PORT}`
-  : `http://${DEV_HOST}:${PORT}`;
+export const API_BASE = `http://${LOCAL_IP}:${PORT}`;
 
 console.log('API_BASE initialized as:', API_BASE);

@@ -71,9 +71,9 @@ const triggerSOSAlert = async (sos) => {
 
   const message = `Emergency Alert: Bus ${sos.busId} requires attention`;
   const contacts = await EmergencyContact.find({}).lean();
-  
+
   // Find extra info for the alert
-  const reportingUser = await User.findOne({ 
+  const reportingUser = await User.findOne({
     $or: [
       { phone: sos.driverId },
       { username: sos.driverId }
@@ -176,14 +176,14 @@ const triggerSOSAlert = async (sos) => {
           date: new Date(),
         });
         await freshIncident.save();
-        
+
         // Reset vehicle status
         if (vehicle && vehicle.maintenanceStatus === 'emergency') {
           vehicle.active = true;
           vehicle.maintenanceStatus = 'ready';
           await updateVehicleMaintenanceStatus(vehicle);
         }
-        
+
         emitIssueUpdated(freshIncident.vehicleId, freshIncident);
       }
     } catch (err) {
@@ -324,7 +324,7 @@ const requireAuth = async (req, res, next) => {
     } else {
       console.warn(`[Auth] User not found for ID: ${userId}, Phone: ${userPhone}, Username: ${username}`);
     }
-    
+
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
@@ -489,7 +489,7 @@ const vehicleSchema = new mongoose.Schema({
   model: String,
   year: Number,
   active: Boolean,
-  maintenanceStatus: { type: String, enum: ['ready', 'not_ready', 'under_maintenance', 'emergency'], default: 'ready' },
+  maintenanceStatus: { type: String, enum: ['ready', 'not_ready', 'under_maintenance', 'needs_maintenance', 'emergency', 'inactive', 'active'], default: 'ready' },
   riskScore: { type: Number, default: 0 },
   riskLevel: { type: String, enum: ['low', 'medium', 'high'], default: 'low' },
   suggestedAction: String,
@@ -725,9 +725,9 @@ const updateVehicleMaintenanceStatus = async (vehicle) => {
   } else if (vehicle.active === false) {
     vehicle.maintenanceStatus = 'inactive';
   } else if (hasOpenIncident) {
-    vehicle.maintenanceStatus = 'under-maintenance';
+    vehicle.maintenanceStatus = 'under_maintenance';
   } else if (anyOverdueTask || nextServiceDue) {
-    vehicle.maintenanceStatus = 'needs-maintenance';
+    vehicle.maintenanceStatus = 'needs_maintenance';
   } else {
     vehicle.maintenanceStatus = 'active';
   }
@@ -759,12 +759,12 @@ const calculateMaintenanceSummary = (vehicle) => {
     const dueText = task.status === 'completed'
       ? 'Completed'
       : task.dueInKm != null
-      ? `Due in ${task.dueInKm} km`
-      : task.dueDate
-      ? dueInDays >= 0
-        ? `Due in ${dueInDays} days`
-        : `Overdue by ${Math.abs(dueInDays)} days`
-      : 'Scheduled';
+        ? `Due in ${task.dueInKm} km`
+        : task.dueDate
+          ? dueInDays >= 0
+            ? `Due in ${dueInDays} days`
+            : `Overdue by ${Math.abs(dueInDays)} days`
+          : 'Scheduled';
 
     return {
       _id: task._id,
@@ -864,9 +864,9 @@ app.get('/driver/dashboard', requireAuth, async (req, res) => {
   try {
     const actorRole = req.actorRole;
     if (!USER_ROLES.includes(actorRole)) {
-       return res.status(403).json({ message: 'Unauthorized access' });
+      return res.status(403).json({ message: 'Unauthorized access' });
     }
-    
+
     // Auto-reconcile missing vehicle assignments
     let assignedId = req.user?.assignedVehicle;
     if (!assignedId && req.user && req.user.role === 'driver') {
@@ -875,12 +875,12 @@ app.get('/driver/dashboard', requireAuth, async (req, res) => {
       req.user.assignedVehicle = assignedId;
       await req.user.save();
     }
-    
+
     // Final fallback
     assignedId = assignedId || 'bus-8824';
 
     let vehicle = await Vehicle.findOne({ vehicleId: assignedId });
-    
+
     // Auto-seed if missing
     if (!vehicle && assignedId.startsWith('bus-')) {
       await seedDriverBus(assignedId, req.user?.name || 'Driver');
@@ -890,9 +890,9 @@ app.get('/driver/dashboard', requireAuth, async (req, res) => {
     if (!vehicle) {
       return res.status(404).json({ message: 'Assigned vehicle not found in database', noVehicle: true });
     }
-    
+
     let incidentQuery = { vehicleId: assignedId };
-    
+
     // Allow drivers to see all maintenance incidents for their assigned vehicle,
     // not just their own, so they show up in their Maintenance Reminders.
     const incidents = await MaintenanceIssue.find(incidentQuery).sort({ createdAt: -1 });
@@ -902,7 +902,7 @@ app.get('/driver/dashboard', requireAuth, async (req, res) => {
       // Create a copy of the mongoose document object
       vehicle = vehicle.toObject();
       const existingIncidentIds = (vehicle.tasks || []).map(t => t.incidentId).filter(Boolean);
-      
+
       incidents.forEach(inc => {
         if (!existingIncidentIds.includes(inc._id.toString())) {
           // If it's a MaintenanceIssue, prefix strip its title
@@ -919,14 +919,14 @@ app.get('/driver/dashboard', requireAuth, async (req, res) => {
             description: inc.description || 'System generated issue.',
             priority: inc.priority || 'medium',
             status: ['resolved', 'closed', 'completed'].includes(inc.incidentStatus) ? 'completed' : 'pending',
-            date: inc.createdAt || new Date()
+            dueDate: inc.createdAt || new Date()
           });
         }
       });
     }
 
-    res.status(200).json({ 
-      vehicle, 
+    res.status(200).json({
+      vehicle,
       incidents,
       user: {
         name: req.user?.name,
@@ -958,85 +958,109 @@ app.put('/driver/maintenance/:vehicleId/:taskId/complete', requireAuth, async (r
       return res.status(404).json({ message: 'Vehicle not found' });
     }
 
-    const task = vehicle.tasks.id(taskId);
+    let task = vehicle.tasks.id(taskId);
+    let virtualTaskIncident = null;
+
     if (!task) {
-      return res.status(404).json({ message: 'Maintenance task not found' });
+      // Fallback: Check if taskId is actually an incident ID (virtual task)
+      if (mongoose.Types.ObjectId.isValid(taskId)) {
+        const incident = await MaintenanceIssue.findById(taskId);
+        if (incident && incident.vehicleId === vehicleId) {
+          virtualTaskIncident = incident;
+        }
+      }
+      
+      if (!virtualTaskIncident) {
+        return res.status(404).json({ message: 'Maintenance task not found' });
+      }
     }
 
-    task.status = 'completed';
-    task.completedAt = new Date();
-    task.technician = req.user?.name || 'Driver';
-    
+    const technicianName = req.user?.name || 'Driver';
+    const completionDate = new Date();
+
+    if (task) {
+      task.status = 'completed';
+      task.completedAt = completionDate;
+      task.technician = technicianName;
+    }
+
     // Update vehicle dates and mileage
-    vehicle.lastServiceDate = new Date();
+    vehicle.lastServiceDate = completionDate;
     const currentMileage = vehicle.currentMileage || 0;
     vehicle.nextServiceKm = currentMileage + 10000;
-    
+
     const sixMonthsFromNow = new Date();
     sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
     vehicle.nextServiceDate = sixMonthsFromNow;
 
+    const taskTitle = task ? (task.title || task.type) : (virtualTaskIncident.title || virtualTaskIncident.type);
+
     vehicle.logs.push({
       title: 'Maintenance Completed',
-      detail: `Driver completed ${task.type || 'maintenance'} task "${task.title}". Status updated to COMPLETED.`,
-      date: new Date(),
+      detail: `${technicianName} completed maintenance task "${taskTitle}". Status updated to COMPLETED.`,
+      date: completionDate,
     });
 
 
     await updateVehicleMaintenanceStatus(vehicle);
     emitVehicleUpdated(vehicle);
 
-    // CRITICAL: Sync the corresponding MaintenanceIssue if it exists
+    // Sync phase
     try {
-      let linkedIncident = null;
-      if (task.incidentId) {
-        linkedIncident = await MaintenanceIssue.findById(task.incidentId);
-      }
-      
-      const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      
-      if (!linkedIncident) {
-        linkedIncident = await MaintenanceIssue.findOne({
-          vehicleId: vehicle.vehicleId,
-          type: task.title,
-          incidentStatus: { $nin: ['resolved', 'closed', 'completed'] }
+      if (virtualTaskIncident) {
+        virtualTaskIncident.incidentStatus = 'resolved';
+        virtualTaskIncident.history.push({
+          status: 'resolved',
+          actor: technicianName,
+          actorRole: 'driver',
+          comment: 'Maintenance completed by driver side.',
+          date: completionDate
         });
-      }
+        await virtualTaskIncident.save();
+        emitIssueCreated(vehicle.vehicleId, virtualTaskIncident); 
+      } else {
+        // Sync for persistent tasks
+        let linkedIncident = null;
+        if (task.incidentId) {
+          linkedIncident = await MaintenanceIssue.findById(task.incidentId);
+        }
 
-      if (!linkedIncident) {
-        linkedIncident = await MaintenanceIssue.findOne({
-          vehicleId: vehicle.vehicleId,
-          type: { $regex: escapeRegex(task.title), $options: 'i' },
-          incidentStatus: { $nin: ['resolved', 'closed', 'completed'] }
-        });
-      }
-      
-      if (!linkedIncident && task.description) {
-         linkedIncident = await MaintenanceIssue.findOne({
-          vehicleId: vehicle.vehicleId,
-          description: task.description,
-          incidentStatus: { $nin: ['resolved', 'closed', 'completed'] }
-        });
-      }
+        const escapeRegex = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-      if (linkedIncident) {
-        linkedIncident.incidentStatus = 'resolved';
-        linkedIncident.history.push({
-           status: 'resolved',
-           actor: req.user?.name || 'Driver',
-           actorRole: 'driver',
-           comment: 'Maintenance completed by driver side (sync).',
-           date: new Date()
-        });
-        await linkedIncident.save();
-        emitIssueCreated(vehicle.vehicleId, linkedIncident); // Re-emit so admin list updates
+        if (!linkedIncident) {
+          linkedIncident = await MaintenanceIssue.findOne({
+            vehicleId: vehicle.vehicleId,
+            type: task.title,
+            incidentStatus: { $nin: ['resolved', 'closed', 'completed'] }
+          });
+        }
+
+        if (!linkedIncident) {
+          linkedIncident = await MaintenanceIssue.findOne({
+            vehicleId: vehicle.vehicleId,
+            type: { $regex: escapeRegex(task.title || ''), $options: 'i' },
+            incidentStatus: { $nin: ['resolved', 'closed', 'completed'] }
+          });
+        }
+
+        if (linkedIncident) {
+          linkedIncident.incidentStatus = 'resolved';
+          linkedIncident.history.push({
+            status: 'resolved',
+            actor: technicianName,
+            actorRole: 'driver',
+            comment: 'Maintenance completed by driver side (sync).',
+            date: completionDate
+          });
+          await linkedIncident.save();
+          emitIssueCreated(vehicle.vehicleId, linkedIncident); 
+        }
       }
     } catch (syncError) {
-      console.warn('Admin issue sync failed:', syncError.message);
+      console.warn('Sync failed:', syncError.message);
     }
 
-
-    res.status(200).json({ message: 'Maintenance successfully completed and synced with admin logs', vehicle });
+    res.status(200).json({ message: 'Maintenance successfully completed', vehicle });
 
 
   } catch (err) {
@@ -1048,7 +1072,7 @@ app.post('/driver/maintenance/:vehicleId/tasks', requireAuth, async (req, res) =
   try {
     const { vehicleId } = req.params;
     const { title, description, type, priority, dueInKm, dueDate, status } = req.body;
-    
+
     if (!title || !type) {
       return res.status(400).json({ message: 'Title and type are required' });
     }
@@ -1068,15 +1092,15 @@ app.post('/driver/maintenance/:vehicleId/tasks', requireAuth, async (req, res) =
       reporter: req.user?.username || req.user?.name || 'driver',
       reporterName: req.user?.name || 'Driver',
       reporterPhone: req.user?.phone || '0771319366',
-      history: [{ 
-        status: 'reported', 
-        actor: req.user?.name || 'Driver', 
-        actorRole: 'driver', 
-        comment: 'Driver reported this needed maintenance.', 
-        date: new Date() 
+      history: [{
+        status: 'reported',
+        actor: req.user?.name || 'Driver',
+        actorRole: 'driver',
+        comment: 'Driver reported this needed maintenance.',
+        date: new Date()
       }]
     };
-    
+
     const incident = new MaintenanceIssue(incidentData);
     await incident.save();
     emitIssueCreated(vehicleId, incident);
@@ -1088,7 +1112,7 @@ app.post('/driver/maintenance/:vehicleId/tasks', requireAuth, async (req, res) =
       priority: priority || 'medium',
       status: 'pending',
       dueInKm,
-      dueDate,
+      dueDate: dueDate || new Date(),
       incidentId: incident._id.toString(),
       reporterName: req.user?.name || 'Driver',
       reporterPhone: req.user?.phone || '0771319366',
@@ -1098,7 +1122,7 @@ app.post('/driver/maintenance/:vehicleId/tasks', requireAuth, async (req, res) =
     };
 
     vehicle.tasks.push(newTask);
-    
+
     // Add to logs
     vehicle.logs.push({
       title: 'Manual Maintenance Task Added',
@@ -1195,7 +1219,12 @@ app.put("/user/update", async (req, res) => {
     if (bloodGroup) user.bloodGroup = bloodGroup;
     if (phone && phone !== lookupPhone) user.phone = phone;
     if (profileImage) user.profileImage = profileImage;
-    if (password) user.password = password;
+    if (password) {
+      if (password.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters" });
+      }
+      user.password = password;
+    }
     if (role) {
       const actorRole = getActorRole(req);
       if (actorRole !== ROLE_SUPER_ADMIN) {
@@ -1246,10 +1275,15 @@ app.get('/maintenance/vehicle', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_
 // =====================
 // Get all vehicles
 // =====================
-app.get('/vehicles', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN, ROLE_STAFF), async (req, res) => {
+app.get('/vehicles', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN, ROLE_STAFF, 'driver'), async (req, res) => {
   try {
     const { search, status, busNumber } = req.query;
     const query = {};
+
+    if (req.actorRole === 'driver') {
+      const assignedId = req.user?.assignedVehicle || 'bus-8824';
+      query.vehicleId = assignedId;
+    }
 
     if (status) {
       query.maintenanceStatus = status;
@@ -1283,13 +1317,13 @@ app.post('/vehicles/:id/analyze-risk', requireAuth, requireRole(ROLE_SUPER_ADMIN
     if (!vehicle) return res.status(404).json({ message: 'Vehicle not found' });
 
     const incidents = await MaintenanceIssue.find({ vehicleId: id, incidentStatus: { $ne: 'resolved' } });
-    
+
     let score = 0;
     incidents.forEach(inc => {
       score += 15;
       if (inc.priority === 'high') score += 15;
     });
-    
+
     if (vehicle.currentMileage >= vehicle.nextServiceKm) score += 30;
     const lastService = vehicle.lastServiceDate ? new Date(vehicle.lastServiceDate).getTime() : 0;
     const monthsSinceService = lastService ? (Date.now() - lastService) / (1000 * 60 * 60 * 24 * 30) : 12;
@@ -1297,7 +1331,7 @@ app.post('/vehicles/:id/analyze-risk', requireAuth, requireRole(ROLE_SUPER_ADMIN
 
     score = Math.min(score, 100);
     vehicle.riskScore = Math.round(score);
-    
+
     let level = 'low';
     if (score >= 40) level = 'medium';
     if (score >= 75) level = 'high';
@@ -1314,10 +1348,10 @@ app.post('/vehicles/:id/analyze-risk', requireAuth, requireRole(ROLE_SUPER_ADMIN
     };
 
     if (vehicle.currentMileage >= vehicle.nextServiceKm) {
-        await generateAlert(`Preventive Maint: ${vehicle.vehicleId} exceeded service interval.`);
+      await generateAlert(`Preventive Maint: ${vehicle.vehicleId} exceeded service interval.`);
     }
     if (monthsSinceService >= 6) {
-        await generateAlert(`Preventive Maint: ${vehicle.vehicleId} exceeded 6-month inspection window.`);
+      await generateAlert(`Preventive Maint: ${vehicle.vehicleId} exceeded 6-month inspection window.`);
     }
 
     if (level === 'high') {
@@ -1414,7 +1448,7 @@ app.post('/maintenance/task', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_AD
     const { vehicleId, title, description, type, dueInKm, dueDate, priority, status, cost, technician, date } = req.body;
     const performerName = req.user?.name || req.body.performerName || 'Staff';
     const performerRole = req.user?.role || req.body.performerRole || 'staff';
-    
+
     if (!vehicleId || !title || !description) {
       return res.status(400).json({ message: 'vehicleId, title and description are required' });
     }
@@ -1438,10 +1472,10 @@ app.post('/maintenance/task', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_AD
     };
 
     vehicle.tasks.push(newTask);
-    vehicle.logs.push({ 
-      title: 'New maintenance task added', 
-      detail: `Created by ${performerName} (${performerRole})`, 
-      date: new Date() 
+    vehicle.logs.push({
+      title: 'New maintenance task added',
+      detail: `Created by ${performerName} (${performerRole})`,
+      date: new Date()
     });
     await updateVehicleMaintenanceStatus(vehicle);
 
@@ -1497,10 +1531,10 @@ app.get('/maintenance/tasks', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_AD
         });
       });
     });
-    
+
     // Sort by date (descending)
-    allTasks.sort((a,b) => new Date(b.date || b.completedAt || b.createdAt) - new Date(a.date || a.completedAt || a.createdAt));
-    
+    allTasks.sort((a, b) => new Date(b.date || b.completedAt || b.createdAt) - new Date(a.date || a.completedAt || a.createdAt));
+
     res.status(200).json({ tasks: allTasks });
   } catch (error) {
     res.status(500).json({ message: 'Server error ❌', error });
@@ -1562,7 +1596,7 @@ app.put('/maintenance/issues/:id/acknowledge', requireAuth, requireRole(ROLE_SUP
   try {
     const { id } = req.params;
     const performer = req.user?.name || 'Admin';
-    
+
     const issue = await MaintenanceIssue.findById(id);
     if (!issue) return res.status(404).json({ message: 'Issue not found' });
 
@@ -1604,8 +1638,8 @@ app.put('/maintenance/issues/:id/resolve', requireAuth, requireRole(ROLE_SUPER_A
     // Trigger vehicle readiness update
     const vehicle = await Vehicle.findOne({ vehicleId: issue.vehicleId });
     if (vehicle) {
-       await updateVehicleMaintenanceStatus(vehicle);
-       emitVehicleUpdated(vehicle);
+      await updateVehicleMaintenanceStatus(vehicle);
+      emitVehicleUpdated(vehicle);
     }
 
     emitIssueCreated(issue.vehicleId, issue);
@@ -1622,25 +1656,25 @@ app.post('/maintenance/risk/analyze', requireAuth, requireRole(ROLE_SUPER_ADMIN,
     const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
 
     for (const vehicle of vehicles) {
-       const recentIssues = await MaintenanceIssue.countDocuments({
-         vehicleId: vehicle.vehicleId,
-         createdAt: { $gte: thirtyDaysAgo },
-         type: { $ne: 'SOS Emergency' }
-       });
+      const recentIssues = await MaintenanceIssue.countDocuments({
+        vehicleId: vehicle.vehicleId,
+        createdAt: { $gte: thirtyDaysAgo },
+        type: { $ne: 'SOS Emergency' }
+      });
 
-       // Logic for risk classification
-       if (recentIssues >= 3) {
-         vehicle.riskLevel = 'high';
-         vehicle.suggestedAction = 'Immediate overhaul recommended. Critical breakdown frequency.';
-       } else if (recentIssues >= 1) {
-         vehicle.riskLevel = 'medium';
-         vehicle.suggestedAction = 'Schedule preventive maintenance soon. Moderate breakdown frequency.';
-       } else {
-         vehicle.riskLevel = 'low';
-         vehicle.suggestedAction = 'Vehicle performing within normal parameters.';
-       }
-       
-       await vehicle.save();
+      // Logic for risk classification
+      if (recentIssues >= 3) {
+        vehicle.riskLevel = 'high';
+        vehicle.suggestedAction = 'Immediate overhaul recommended. Critical breakdown frequency.';
+      } else if (recentIssues >= 1) {
+        vehicle.riskLevel = 'medium';
+        vehicle.suggestedAction = 'Schedule preventive maintenance soon. Moderate breakdown frequency.';
+      } else {
+        vehicle.riskLevel = 'low';
+        vehicle.suggestedAction = 'Vehicle performing within normal parameters.';
+      }
+
+      await vehicle.save();
     }
 
     res.status(200).json({ message: 'Fleet risk analysis refreshed successfully ✅' });
@@ -1795,7 +1829,7 @@ app.post('/sos', async (req, res) => {
       status: 'pending',
     });
     await sos.save();
-    
+
     // Trigger the alert immediately instead of waiting 5 minutes
     await triggerSOSAlert(sos);
 
@@ -1912,15 +1946,17 @@ app.get('/notifications', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN,
       query.isRead = false;
     }
     const alerts = await SOSAlert.find(query).sort({ createdAt: -1 }).limit(50);
-    res.status(200).json({ notifications: alerts.map((alert) => ({
-      _id: alert._id,
-      message: alert.message,
-      busId: alert.busId,
-      status: alert.status,
-      isRead: alert.isRead,
-      createdAt: alert.createdAt,
-      responseTimeSeconds: alert.responseTimeSeconds,
-    })) });
+    res.status(200).json({
+      notifications: alerts.map((alert) => ({
+        _id: alert._id,
+        message: alert.message,
+        busId: alert.busId,
+        status: alert.status,
+        isRead: alert.isRead,
+        createdAt: alert.createdAt,
+        responseTimeSeconds: alert.responseTimeSeconds,
+      }))
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error ❌', error });
   }
@@ -2032,7 +2068,7 @@ app.post('/incidents', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN, RO
       history: [{ status: 'reported', actor: reporter || req.user?.name || 'staff', actorRole, comment: 'Incident reported', date: new Date() }]
     });
     await incident.save();
-    
+
     emitIssueCreated(vehicleId, incident);
     res.status(201).json({ message: 'Incident reported successfully ✅', incident });
   } catch (error) {
@@ -2058,7 +2094,7 @@ app.put('/incidents/:id', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN,
     const { id } = req.params;
     const { incidentStatus, assignedTo, priority, comment, actor, actorRole } = req.body;
     console.log(`[PUT /incidents/${id}] Status: ${incidentStatus}, Actor: ${actor} (${actorRole})`);
-    
+
     const incident = await MaintenanceIssue.findById(id);
     if (!incident) {
       return res.status(404).json({ message: 'Incident not found' });
@@ -2071,7 +2107,7 @@ app.put('/incidents/:id', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN,
     }
     if (assignedTo !== undefined) incident.assignedTo = assignedTo || null;
     if (priority) incident.priority = priority;
-    
+
     incident.updatedAt = new Date();
     incident.history.push({ status: incident.incidentStatus, actor: actor || 'System', actorRole: actorRole || 'unknown', comment: comment || (statusUpdated ? `Status changed to ${incident.incidentStatus}` : 'Incident updated'), date: new Date() });
     await incident.save();
@@ -2081,9 +2117,9 @@ app.put('/incidents/:id', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN,
       if (incident.incidentStatus !== 'resolved' && incident.incidentStatus !== 'closed') {
         vehicle.active = false;
       } else {
-        const openCount = await MaintenanceIssue.countDocuments({ 
-          vehicleId: vehicle.vehicleId, 
-          incidentStatus: { $in: ['reported', 'assigned', 'in_progress', 'pending', 'under_review'] } 
+        const openCount = await MaintenanceIssue.countDocuments({
+          vehicleId: vehicle.vehicleId,
+          incidentStatus: { $in: ['reported', 'assigned', 'in_progress', 'pending', 'under_review'] }
         });
         if (openCount === 0) {
           vehicle.active = true;
@@ -2109,11 +2145,11 @@ app.post('/incidents/:id/comments', requireAuth, requireRole(ROLE_SUPER_ADMIN, R
     if (!incident) {
       return res.status(404).json({ message: 'Incident not found' });
     }
-    
+
     incident.comments.push({ actor: actor || 'Staff', actorRole: actorRole || 'staff', comment, date: new Date() });
     incident.updatedAt = new Date();
     await incident.save();
-    
+
     const populatedIncident = await MaintenanceIssue.findById(id).populate('assignedTo', 'name email role phone');
     res.status(200).json({ message: 'Comment added', incident: populatedIncident });
   } catch (error) {
@@ -2138,7 +2174,7 @@ app.delete('/incidents/:id', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADM
     const incidentStatus = incident.incidentStatus;
 
     await MaintenanceIssue.findByIdAndDelete(id);
-    
+
     await recordAudit({
       actor: actor || 'System',
       actorRole: actorRole || 'unknown',
@@ -2152,9 +2188,9 @@ app.delete('/incidents/:id', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADM
 
     const vehicle = await Vehicle.findOne({ vehicleId });
     if (vehicle) {
-      const openCount = await MaintenanceIssue.countDocuments({ 
-        vehicleId: vehicle.vehicleId, 
-        incidentStatus: { $in: ['pending', 'reported', 'in_progress', 'assigned'] } 
+      const openCount = await MaintenanceIssue.countDocuments({
+        vehicleId: vehicle.vehicleId,
+        incidentStatus: { $in: ['pending', 'reported', 'in_progress', 'assigned'] }
       });
       if (openCount === 0) {
         vehicle.active = true;
@@ -2172,227 +2208,227 @@ app.delete('/incidents/:id', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADM
 // =====================
 // Admin list
 // =====================
-  app.post("/users", requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN), async (req, res) => {
-    try {
-      const { name, username, password, email, phone, role, adminType, adminRole } = req.body;
-      if (!name || !password || !role) {
-        return res.status(400).json({ message: "Name, password, and role are required" });
+app.post("/users", requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN), async (req, res) => {
+  try {
+    const { name, username, password, email, phone, role, adminType, adminRole } = req.body;
+    if (!name || !password || !role) {
+      return res.status(400).json({ message: "Name, password, and role are required" });
+    }
+    if (!USER_ROLES.includes(role)) {
+      return res.status(400).json({ message: "Invalid role." });
+    }
+    if (['admin', 'super-admin', 'staff'].includes(role) && !username) {
+      return res.status(400).json({ message: "Admin/staff accounts require a username" });
+    }
+    if (['passenger', 'driver'].includes(role) && !phone && !username) {
+      return res.status(400).json({ message: "Passenger/driver accounts require a phone number or username" });
+    }
+    if (role === ROLE_ADMIN && (!adminType || !adminRole)) {
+      return res.status(400).json({ message: "Admin creation requires access type and admin role" });
+    }
+    const duplicateQuery = [];
+    if (username) duplicateQuery.push({ username });
+    if (phone) duplicateQuery.push({ phone });
+
+    const existingUser = await User.findOne({ $or: duplicateQuery });
+    if (existingUser) {
+      const field = (username && existingUser.username === username) ? 'Username' : 'Phone number';
+      return res.status(400).json({ message: `${field} is already registered` });
+    }
+    let busId;
+    if (role === 'driver') {
+      const suffix = phone ? phone.slice(-4) : Math.floor(1000 + Math.random() * 9000);
+      busId = `bus-${suffix}`;
+      await seedDriverBus(busId, name);
+    }
+
+    const newUser = new User({
+      name,
+      username: username || undefined,
+      password,
+      email: email || undefined,
+      phone: phone || undefined,
+      role,
+      status: 'active',
+      isActive: true,
+      adminType: role === ROLE_ADMIN ? adminType : undefined,
+      adminRole: role === ROLE_ADMIN ? adminRole || ROLE_ADMIN : (role === ROLE_SUPER_ADMIN ? ROLE_SUPER_ADMIN : undefined),
+      assignedVehicle: busId,
+    });
+    await newUser.save();
+    await recordAudit({
+      actor: req.get('x-user-name') || 'system',
+      actorRole: req.actorRole,
+      action: `created-${role}`,
+      targetId: newUser._id,
+      targetName: newUser.name,
+      targetUsername: newUser.username,
+      targetRole: newUser.role,
+      details: `Created user ${newUser.username || newUser.phone} with role ${newUser.role}`,
+    });
+    res.status(201).json({ message: "User created ✅", user: { ...newUser.toObject(), password: undefined } });
+  } catch (error) {
+    console.error('Create user error:', error);
+    if (error?.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'entry';
+      return res.status(400).json({ message: `Duplicate ${field} detected. This ${field} is already in use.` });
+    }
+    res.status(500).json({ message: "Could not create user" });
+  }
+});
+
+app.get("/users", requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN, ROLE_STAFF), async (req, res) => {
+  try {
+    const { search, role, status } = req.query;
+    const query = {};
+    if (search) {
+      query.$or = [
+        { name: new RegExp(search, 'i') },
+        { username: new RegExp(search, 'i') },
+        { email: new RegExp(search, 'i') },
+      ];
+    }
+    if (role) query.role = role;
+    if (status) query.status = status;
+    const users = await User.find(query).select('-password').sort({ updatedAt: -1 });
+    res.status(200).json({ users });
+  } catch (error) {
+    console.error('Fetch users error:', error);
+    res.status(500).json({ message: "Could not fetch users" });
+  }
+});
+
+app.get("/users/stats", requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN, ROLE_STAFF), async (req, res) => {
+  try {
+    const passengers = await User.countDocuments({ role: 'passenger' });
+    const drivers = await User.countDocuments({ role: 'driver' });
+    const overall = await User.countDocuments();
+    const totalIncidents = await MaintenanceIssue.countDocuments();
+    res.status(200).json({ passengers, drivers, overall, totalIncidents });
+  } catch (error) {
+    console.error('Fetch stats error:', error);
+    res.status(500).json({ message: "Could not fetch stats" });
+  }
+});
+
+// Modified for self-service: Allow super-admin, admin, or THE USER themselves to update
+app.put("/users/:id", requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const isSelf = req.get('x-user-id') === id; // We can pass x-user-id from frontend
+
+  // If not self, must be admin or super-admin
+  if (!isSelf && !['admin', 'super-admin'].includes(req.actorRole)) {
+    return res.status(403).json({ message: "You are not authorized to update this user." });
+  }
+
+  console.log('PUT /users/:id triggered', id, req.body);
+  try {
+    const { id } = req.params;
+    const { name, username, password, email, phone, role, adminType, adminRole, isActive, status } = req.body;
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Security check: Standard admins cannot update super admins
+    if (req.actorRole === ROLE_ADMIN && user.role === ROLE_SUPER_ADMIN) {
+      return res.status(403).json({ message: "Standard Administrators cannot modify Super Admin accounts" });
+    }
+
+    if (username && username !== user.username) {
+      const duplicate = await User.findOne({ username });
+      if (duplicate) {
+        return res.status(400).json({ message: "Username already taken" });
       }
+    }
+    user.name = name || user.name;
+    user.username = username || user.username;
+    if (password) user.password = password;
+    user.email = email || user.email;
+    user.phone = phone || user.phone;
+    if (role) {
       if (!USER_ROLES.includes(role)) {
-        return res.status(400).json({ message: "Invalid role." });
+        return res.status(400).json({ message: "Invalid role update" });
       }
-      if (['admin', 'super-admin', 'staff'].includes(role) && !username) {
-        return res.status(400).json({ message: "Admin/staff accounts require a username" });
-      }
-      if (['passenger', 'driver'].includes(role) && !phone && !username) {
-        return res.status(400).json({ message: "Passenger/driver accounts require a phone number or username" });
-      }
-      if (role === ROLE_ADMIN && (!adminType || !adminRole)) {
-        return res.status(400).json({ message: "Admin creation requires access type and admin role" });
-      }
-      const duplicateQuery = [];
-      if (username) duplicateQuery.push({ username });
-      if (phone) duplicateQuery.push({ phone });
-      
-      const existingUser = await User.findOne({ $or: duplicateQuery });
-      if (existingUser) {
-        const field = (username && existingUser.username === username) ? 'Username' : 'Phone number';
-        return res.status(400).json({ message: `${field} is already registered` });
-      }
-      let busId;
-      if (role === 'driver') {
-        const suffix = phone ? phone.slice(-4) : Math.floor(1000 + Math.random() * 9000);
-        busId = `bus-${suffix}`;
-        await seedDriverBus(busId, name);
-      }
-
-      const newUser = new User({
-        name,
-        username: username || undefined,
-        password,
-        email: email || undefined,
-        phone: phone || undefined,
-        role,
-        status: 'active',
-        isActive: true,
-        adminType: role === ROLE_ADMIN ? adminType : undefined,
-        adminRole: role === ROLE_ADMIN ? adminRole || ROLE_ADMIN : (role === ROLE_SUPER_ADMIN ? ROLE_SUPER_ADMIN : undefined),
-        assignedVehicle: busId,
-      });
-      await newUser.save();
-      await recordAudit({
-        actor: req.get('x-user-name') || 'system',
-        actorRole: req.actorRole,
-        action: `created-${role}`,
-        targetId: newUser._id,
-        targetName: newUser.name,
-        targetUsername: newUser.username,
-        targetRole: newUser.role,
-        details: `Created user ${newUser.username || newUser.phone} with role ${newUser.role}`,
-      });
-      res.status(201).json({ message: "User created ✅", user: { ...newUser.toObject(), password: undefined } });
-    } catch (error) {
-      console.error('Create user error:', error);
-      if (error?.code === 11000) {
-        const field = Object.keys(error.keyPattern || {})[0] || 'entry';
-        return res.status(400).json({ message: `Duplicate ${field} detected. This ${field} is already in use.` });
-      }
-      res.status(500).json({ message: "Could not create user" });
+      user.role = role;
     }
-  });
-
-  app.get("/users", requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN, ROLE_STAFF), async (req, res) => {
-    try {
-      const { search, role, status } = req.query;
-      const query = {};
-      if (search) {
-        query.$or = [
-          { name: new RegExp(search, 'i') },
-          { username: new RegExp(search, 'i') },
-          { email: new RegExp(search, 'i') },
-        ];
-      }
-      if (role) query.role = role;
-      if (status) query.status = status;
-      const users = await User.find(query).select('-password').sort({ updatedAt: -1 });
-      res.status(200).json({ users });
-    } catch (error) {
-      console.error('Fetch users error:', error);
-      res.status(500).json({ message: "Could not fetch users" });
+    if (user.role === ROLE_ADMIN) {
+      user.adminType = adminType || user.adminType || 'user-management';
+      user.adminRole = adminRole || user.adminRole || ROLE_ADMIN;
+    } else if (user.role === ROLE_SUPER_ADMIN) {
+      user.adminType = undefined;
+      user.adminRole = ROLE_SUPER_ADMIN;
+    } else {
+      user.adminType = undefined;
+      user.adminRole = undefined;
     }
-  });
-
-  app.get("/users/stats", requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN, ROLE_STAFF), async (req, res) => {
-    try {
-      const passengers = await User.countDocuments({ role: 'passenger' });
-      const drivers = await User.countDocuments({ role: 'driver' });
-      const overall = await User.countDocuments();
-      const totalIncidents = await MaintenanceIssue.countDocuments();
-      res.status(200).json({ passengers, drivers, overall, totalIncidents });
-    } catch (error) {
-      console.error('Fetch stats error:', error);
-      res.status(500).json({ message: "Could not fetch stats" });
+    if (typeof isActive === 'boolean') {
+      user.isActive = isActive;
     }
-  });
-
-  // Modified for self-service: Allow super-admin, admin, or THE USER themselves to update
-  app.put("/users/:id", requireAuth, async (req, res) => {
-    const { id } = req.params;
-    const isSelf = req.get('x-user-id') === id; // We can pass x-user-id from frontend
-    
-    // If not self, must be admin or super-admin
-    if (!isSelf && !['admin', 'super-admin'].includes(req.actorRole)) {
-      return res.status(403).json({ message: "You are not authorized to update this user." });
+    if (status) {
+      user.status = status;
+      user.isActive = status === 'active';
     }
+    await user.save();
+    await recordAudit({
+      actor: req.get('x-user-name') || 'system',
+      actorRole: req.actorRole,
+      action: `updated-${user.role}`,
+      targetId: user._id,
+      targetName: user.name,
+      targetUsername: user.username,
+      targetRole: user.role,
+      details: `Updated user ${user.username} (${user.role}) status=${user.status}`,
+    });
+    res.status(200).json({ message: "User updated ", user: { ...user.toObject(), password: undefined } });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({ message: "Could not update user" });
+  }
+});
 
-    console.log('PUT /users/:id triggered', id, req.body);
-    try {
-      const { id } = req.params;
-      const { name, username, password, email, phone, role, adminType, adminRole, isActive, status } = req.body;
-      const user = await User.findById(id);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
+// Modified for self-service: Allow super-admin OR THE USER themselves to delete
+app.delete("/users/:id", requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const xUserId = req.get('x-user-id');
+  const isSelf = xUserId === id;
 
-      // Security check: Standard admins cannot update super admins
-      if (req.actorRole === ROLE_ADMIN && user.role === ROLE_SUPER_ADMIN) {
-        return res.status(403).json({ message: "Standard Administrators cannot modify Super Admin accounts" });
-      }
+  console.log('DELETE /users/:id triggered', { id, xUserId, isSelf, actorRole: req.actorRole });
 
-      if (username && username !== user.username) {
-        const duplicate = await User.findOne({ username });
-        if (duplicate) {
-          return res.status(400).json({ message: "Username already taken" });
-        }
-      }
-      user.name = name || user.name;
-      user.username = username || user.username;
-      if (password) user.password = password;
-      user.email = email || user.email;
-      user.phone = phone || user.phone;
-      if (role) {
-        if (!USER_ROLES.includes(role)) {
-          return res.status(400).json({ message: "Invalid role update" });
-        }
-        user.role = role;
-      }
-      if (user.role === ROLE_ADMIN) {
-        user.adminType = adminType || user.adminType || 'user-management';
-        user.adminRole = adminRole || user.adminRole || ROLE_ADMIN;
-      } else if (user.role === ROLE_SUPER_ADMIN) {
-        user.adminType = undefined;
-        user.adminRole = ROLE_SUPER_ADMIN;
-      } else {
-        user.adminType = undefined;
-        user.adminRole = undefined;
-      }
-      if (typeof isActive === 'boolean') {
-        user.isActive = isActive;
-      }
-      if (status) {
-        user.status = status;
-        user.isActive = status === 'active';
-      }
-      await user.save();
-      await recordAudit({
-        actor: req.get('x-user-name') || 'system',
-        actorRole: req.actorRole,
-        action: `updated-${user.role}`,
-        targetId: user._id,
-        targetName: user.name,
-        targetUsername: user.username,
-        targetRole: user.role,
-        details: `Updated user ${user.username} (${user.role}) status=${user.status}`,
-      });
-      res.status(200).json({ message: "User updated ✅", user: { ...user.toObject(), password: undefined } });
-    } catch (error) {
-      console.error('Update user error:', error);
-      res.status(500).json({ message: "Could not update user" });
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    console.log('Invalid ObjectId format');
+    return res.status(400).json({ message: "Invalid user ID format" });
+  }
+
+  if (!isSelf && req.actorRole !== ROLE_SUPER_ADMIN) {
+    console.log('Permission denied: not self and not super-admin');
+    return res.status(403).json({ message: "Only the account owner or Super Admin can delete this account." });
+  }
+
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      console.log('User not found by id');
+      return res.status(404).json({ message: "User not found" });
     }
-  });
-
-  // Modified for self-service: Allow super-admin OR THE USER themselves to delete
-  app.delete("/users/:id", requireAuth, async (req, res) => {
-    const { id } = req.params;
-    const xUserId = req.get('x-user-id');
-    const isSelf = xUserId === id;
-
-    console.log('DELETE /users/:id triggered', { id, xUserId, isSelf, actorRole: req.actorRole });
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      console.log('Invalid ObjectId format');
-      return res.status(400).json({ message: "Invalid user ID format" });
-    }
-
-    if (!isSelf && req.actorRole !== ROLE_SUPER_ADMIN) {
-      console.log('Permission denied: not self and not super-admin');
-      return res.status(403).json({ message: "Only the account owner or Super Admin can delete this account." });
-    }
-
-    try {
-      const user = await User.findById(id);
-      if (!user) {
-        console.log('User not found by id');
-        return res.status(404).json({ message: "User not found" });
-      }
-      await User.deleteOne({ _id: id });
-      console.log('User deleted successfully');
-      await recordAudit({
-        actor: req.get('x-user-name') || 'system',
-        actorRole: req.actorRole,
-        action: `deleted-${user.role}`,
-        targetId: user._id,
-        targetName: user.name,
-        targetUsername: user.username,
-        targetRole: user.role,
-        details: `Deleted user ${user.username} (${user.role})`,
-      });
-      res.status(200).json({ message: "User deleted ✅" });
-    } catch (error) {
-      console.error('Delete user error:', error);
-      res.status(500).json({ message: "Could not delete user" });
-    }
-  });
+    await User.deleteOne({ _id: id });
+    console.log('User deleted successfully');
+    await recordAudit({
+      actor: req.get('x-user-name') || 'system',
+      actorRole: req.actorRole,
+      action: `deleted-${user.role}`,
+      targetId: user._id,
+      targetName: user.name,
+      targetUsername: user.username,
+      targetRole: user.role,
+      details: `Deleted user ${user.username} (${user.role})`,
+    });
+    res.status(200).json({ message: "User deleted " });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({ message: "Could not delete user" });
+  }
+});
 
 // =====================
 // Audit Log endpoints
@@ -2402,7 +2438,7 @@ app.get('/audit', requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN, ROLE_MA
     const logs = await AuditLog.find({}).sort({ createdAt: -1 }).limit(100);
     res.status(200).json({ logs });
   } catch (error) {
-    res.status(500).json({ message: 'Server error ❌', error });
+    res.status(500).json({ message: 'Server error ', error });
   }
 });
 app.get("/admins", requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN), async (req, res) => {
@@ -2429,7 +2465,7 @@ app.get("/admins", requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN), async
     res.status(200).json({ admins });
   } catch (error) {
     console.error('Fetch admins error:', error);
-    res.status(500).json({ message: "Server error ❌" });
+    res.status(500).json({ message: "Server error " });
   }
 });
 
@@ -2488,13 +2524,13 @@ app.post("/admins", requireAuth, requireRole(ROLE_SUPER_ADMIN), async (req, res)
       details: `Created admin ${newAdmin.username} with role ${newAdmin.adminRole}`,
     });
 
-    res.status(201).json({ message: "Admin account created ✅", admin: { ...newAdmin.toObject(), password: undefined } });
+    res.status(201).json({ message: "Admin account created ", admin: { ...newAdmin.toObject(), password: undefined } });
   } catch (error) {
     console.error('Create admin error:', error);
     if (error?.code === 11000) {
       return res.status(400).json({ message: "Duplicate username or phone detected" });
     }
-    res.status(500).json({ message: "Server error ❌", error: error.message });
+    res.status(500).json({ message: "Server error ", error: error.message });
   }
 });
 
@@ -2567,13 +2603,13 @@ app.put("/admins/:id", requireAuth, requireRole(ROLE_SUPER_ADMIN, ROLE_ADMIN), a
 
     const updatedAdmin = admin.toObject();
     delete updatedAdmin.password;
-    res.status(200).json({ message: "Admin account updated ✅", admin: updatedAdmin });
+    res.status(200).json({ message: "Admin account updated ", admin: updatedAdmin });
   } catch (error) {
     console.error('Update admin error:', error);
     if (error?.code === 11000) {
       return res.status(400).json({ message: "Duplicate username or phone detected" });
     }
-    res.status(500).json({ message: "Server error ❌", error: error.message });
+    res.status(500).json({ message: "Server error ", error: error.message });
   }
 });
 
@@ -2606,10 +2642,10 @@ app.delete("/admins/:id", async (req, res) => {
       details: `Deleted admin ${admin.username}`,
     });
 
-    res.status(200).json({ message: "Admin account deleted ✅" });
+    res.status(200).json({ message: "Admin account deleted " });
   } catch (error) {
     console.error('Delete admin error:', error);
-    res.status(500).json({ message: "Server error ❌", error: error.message });
+    res.status(500).json({ message: "Server error ", error: error.message });
   }
 });
 
@@ -2650,7 +2686,7 @@ app.patch("/admins/:id/status", async (req, res) => {
     res.status(200).json({ message: `Admin account ${isActive ? 'activated' : 'deactivated'} ✅`, admin: { ...admin.toObject(), password: undefined } });
   } catch (error) {
     console.error('Change admin status error:', error);
-    res.status(500).json({ message: "Server error ❌", error: error.message });
+    res.status(500).json({ message: "Server error ", error: error.message });
   }
 });
 
@@ -2663,7 +2699,7 @@ app.get("/admin-audit", async (req, res) => {
     res.status(200).json({ logs });
   } catch (error) {
     console.error('Fetch audit logs error:', error);
-    res.status(500).json({ message: "Server error ❌" });
+    res.status(500).json({ message: "Server error " });
   }
 });
 
@@ -2675,7 +2711,7 @@ app.get("/passengers", async (req, res) => {
     const passengers = await User.find({ role: 'passenger' });
     res.status(200).json({ passengers });
   } catch (error) {
-    res.status(500).json({ message: "Server error ❌" });
+    res.status(500).json({ message: "Server error " });
   }
 });
 
@@ -2687,7 +2723,7 @@ app.get("/drivers", async (req, res) => {
     const drivers = await User.find({ role: 'driver' });
     res.status(200).json({ drivers });
   } catch (error) {
-    res.status(500).json({ message: "Server error ❌" });
+    res.status(500).json({ message: "Server error " });
   }
 });
 

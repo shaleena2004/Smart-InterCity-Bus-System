@@ -22,6 +22,7 @@ export default function DriverMaintenanceScreen() {
   const [mtDesc, setMtDesc] = useState('');
   const [mtPriority, setMtPriority] = useState('medium');
   const [mtDueInKm, setMtDueInKm] = useState('');
+  const [mtDueDate, setMtDueDate] = useState(new Date().toISOString().split('T')[0]);
   const [mtSubmitting, setMtSubmitting] = useState(false);
 
   const fetchMaintenance = async () => {
@@ -63,6 +64,7 @@ export default function DriverMaintenanceScreen() {
           description: mtDesc,
           priority: mtPriority,
           dueInKm: mtDueInKm ? parseInt(mtDueInKm) : undefined,
+          dueDate: mtDueDate || undefined,
           status: 'pending'
         }),
       });
@@ -74,6 +76,7 @@ export default function DriverMaintenanceScreen() {
       setMtDesc('');
       setMtPriority('medium');
       setMtDueInKm('');
+      setMtDueDate(new Date().toISOString().split('T')[0]);
       fetchMaintenance();
       if (Platform.OS === 'web') window.alert('Success: Maintenance task added.');
       else Alert.alert('Success', 'Maintenance task added.');
@@ -90,9 +93,16 @@ export default function DriverMaintenanceScreen() {
         setCompletingTaskId(taskId);
         const res = await fetch(`${API_BASE}/driver/maintenance/${vehicle.vehicleId}/${taskId}/complete`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'x-user-role': role || 'driver' }
+          headers: { 
+            'Content-Type': 'application/json', 
+            'x-user-role': role || 'driver',
+            'x-user-phone': phone
+          }
         });
-        if (!res.ok) throw new Error('Update failed');
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || 'Update failed');
+        }
         
         setCompletingTaskId(null);
         setSuccessTaskId(taskId);
@@ -251,6 +261,9 @@ export default function DriverMaintenanceScreen() {
 
              <Text style={styles.label}>Description</Text>
              <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} placeholder="Details..." placeholderTextColor={Colors.textMuted} multiline value={mtDesc} onChangeText={setMtDesc}/>
+             
+             <Text style={styles.label}>Due Date (YYYY-MM-DD)</Text>
+             <TextInput style={styles.input} placeholder="2026-04-10" placeholderTextColor={Colors.textMuted} value={mtDueDate} onChangeText={setMtDueDate}/>
              
              <TouchableOpacity style={styles.submitBtn} onPress={handleAddMaintenance} disabled={mtSubmitting}>
                 {mtSubmitting ? <ActivityIndicator color="#000" /> : <Text style={styles.submitText}>Save Task</Text>}

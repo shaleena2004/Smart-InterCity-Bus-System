@@ -55,8 +55,8 @@ export default function SignUpScreen() {
       setErrorMessage("Phone number must be exactly 10 digits");
       return;
     }
-    if (password.length < 6) {
-      setErrorMessage("Password must be at least 6 characters long");
+    if (password.length < 8) {
+      setErrorMessage("Password must be at least 8 characters long");
       return;
     }
 

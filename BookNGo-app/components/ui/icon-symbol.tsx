@@ -1,44 +1,39 @@
-// Fallback for using MaterialIcons on Android and web.
+/**
+ * This project uses SF Symbols on iOS, and MaterialIcons on Android and web, to match native look and feel.
+ */
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolViewProps, SymbolWeight } from 'expo-symbols';
-import { ComponentProps } from 'react';
-import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
+import React from 'react';
+import { OpaqueColorValue, StyleProp, ViewStyle } from 'react-native';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
-type IconSymbolName = keyof typeof MAPPING;
-
-/**
- * Add your SF Symbols to Material Icons mappings here.
- * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
- * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
- */
+// Add your SFSymbol to MaterialIcons mappings here.
 const MAPPING = {
+  // See MaterialIcons here: https://icons.expo.fyi
+  // See SF Symbols in the SF Symbols app on Mac.
   'house.fill': 'home',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
-  'location.fill': 'location-on',
-  'clock.fill': 'access-time',
-  'doc.text.fill': 'assessment',
-  'bell.fill': 'notifications',
-  'map.fill': 'map',
-  'chart.bar.fill': 'bar-chart',
-  'bus.fill': 'directions-bus',
   'magnifyingglass': 'search',
-  'ticket.fill': 'confirmation-number',
+  'ticket.fill': 'confirmation-num',
   'person.fill': 'person',
-  'pencil': 'edit',
-  'trash.fill': 'delete',
-  'plus': 'add',
-  'qrcode': 'qr-code',
-} as IconMapping;
+  'bell.fill': 'notifications',
+  'location.fill': 'my-location',
+  'clock.fill': 'schedule',
+  'doc.on.doc.fill': 'assessment',
+  'map.fill': 'map',
+  'plus.circle.fill': 'add-circle',
+  'exclamationmark.triangle.fill': 'warning',
+  'chart.bar.fill': 'bar-chart',
+  'arrow.triangle.pull': 'trending-up',
+} as Partial<Record<import('expo-symbols').SymbolViewProps['name'], React.ComponentProps<typeof MaterialIcons>['name']>>;
 
+export type IconSymbolName = keyof typeof MAPPING;
 
 /**
- * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
- * This ensures a consistent look across platforms, and optimal resource usage.
- * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
+ * An icon component that uses native SFSymbols on iOS, and MaterialIcons on Android and web. This ensures a consistent look across platforms, and optimal resource usage.
+ *
+ * Icon `name`s are based on SFSymbols and require manual mapping to MaterialIcons on non-iOS platforms.
  */
 export function IconSymbol({
   name,
@@ -49,8 +44,7 @@ export function IconSymbol({
   name: IconSymbolName;
   size?: number;
   color: string | OpaqueColorValue;
-  style?: StyleProp<TextStyle>;
-  weight?: SymbolWeight;
+  style?: StyleProp<ViewStyle>;
 }) {
   return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
 }

@@ -3,6 +3,7 @@ import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -24,7 +25,7 @@ export default function TabLayout() {
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
           shadowRadius: 4,
-        }
+        },
       }}>
       <Tabs.Screen
         name="index"
@@ -41,9 +42,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="bookings"
+        name="my-bookings"
         options={{
-          title: 'Bookings',
+          title: 'My Tickets',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="ticket.fill" color={color} />,
         }}
       />
@@ -55,7 +56,7 @@ export default function TabLayout() {
         }}
       />
       
-      {/* Hidden Screens */}
+      {/* Hidden/Admin Screens */}
       <Tabs.Screen
         name="reports"
         options={{
@@ -75,6 +76,12 @@ export default function TabLayout() {
         options={{
           href: null,
           title: 'Schedule',
+        }}
+      />
+      <Tabs.Screen
+        name="bookings"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

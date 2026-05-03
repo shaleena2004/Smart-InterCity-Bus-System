@@ -10,7 +10,7 @@ collection = {
     "variable": [
         {
             "key": "baseUrl",
-            "value": "http://localhost:5000/api",
+            "value": "https://smart-intercity-bus-system.onrender.com",
             "type": "string"
         }
     ],

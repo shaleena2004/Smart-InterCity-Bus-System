@@ -1,0 +1,1342 @@
+{
+  "info": {
+    "name": "BookNGo Unified API",
+    "description": "Comprehensive Postman Collection for all Book & Go backend API routes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/user/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "user",
+                ":id"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Supplier",
+      "item": [
+        {
+          "name": "Create Supplier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/supplier/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "supplier"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Suppliers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/supplier/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "supplier"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Supplier by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/supplier/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "supplier",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Supplier",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/supplier/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "supplier",
+                ":id"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Supplier",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/supplier/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "supplier",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Salary",
+      "item": [
+        {
+          "name": "Add Salary",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/salary/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salary"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Salaries",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/salary/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salary"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Salary by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/salary/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salary",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Salary",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/salary/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salary",
+                ":id"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Salary",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/salary/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "salary",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Route",
+      "item": [
+        {
+          "name": "Create Route",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/route/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "route"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Routes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/route/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "route"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Route",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/route/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "route",
+                ":id"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Route",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/route/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "route",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Revenue",
+      "item": [
+        {
+          "name": "Add Revenue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/revenue/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "revenue"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Revenue",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/revenue/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "revenue"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Revenue Report",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/revenue/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "revenue",
+                "report"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Revenue by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/revenue/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "revenue",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Revenue",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/revenue/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "revenue",
+                ":id"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Revenue",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/revenue/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "revenue",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Revenue Allocation",
+      "item": [
+        {
+          "name": "Create Allocation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/revenue-allocation/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "revenue-allocation"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Summary",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/revenue-allocation/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "revenue-allocation",
+                "summary"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Performance",
+      "item": [
+        {
+          "name": "Add Trip",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/performance/trip",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "performance",
+                "trip"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Incident",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/performance/incident",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "performance",
+                "incident"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Feedback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/performance/feedback",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "performance",
+                "feedback"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Complaint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/performance/complaint",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "performance",
+                "complaint"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Feedback",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/performance/feedback",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "performance",
+                "feedback"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Complaints",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/performance/complaints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "performance",
+                "complaints"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Debug Trips",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/performance/debug-trips",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "performance",
+                "debug-trips"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List All",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/performance/list-all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "performance",
+                "list-all"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Supplier Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/performance/stats/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "performance",
+                "stats",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Driver Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/performance/driver-stats/:driverId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "performance",
+                "driver-stats",
+                ":driverId"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Booking",
+      "item": [
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/booking/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/booking/user/:userId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                "user",
+                ":userId"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/booking/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Booking Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/booking/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                ":id"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/booking/:id/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                ":id",
+                "cancel"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Booking",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/booking/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "booking",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Bus",
+      "item": [
+        {
+          "name": "Create Bus",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bus/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bus"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Buses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bus/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bus"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Bus by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bus/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bus",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Bus",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bus/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bus",
+                ":id"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Bus",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bus/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bus",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Commission",
+      "item": [
+        {
+          "name": "Add Commission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/commission/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "commission"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Commissions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/commission/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "commission"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Commission by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/commission/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "commission",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Commission",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/commission/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "commission",
+                ":id"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Commission",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/commission/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "commission",
+                ":id"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

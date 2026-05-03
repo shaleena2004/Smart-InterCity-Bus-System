@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "UnifiedFrontend",
+    "slug": "UnifiedFrontend",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "AIzaSyAR1hIc1CkvSu79noTgVBtWLzNtbEPk3r0"
+      },
+      "bundleIdentifier": "com.bookngo.unified"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAR1hIc1CkvSu79noTgVBtWLzNtbEPk3r0"
+        }
+      },
+      "package": "com.bookngo.unified",
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "bookngo"
+  }
+}

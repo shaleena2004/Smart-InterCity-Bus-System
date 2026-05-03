@@ -1,0 +1,14 @@
+{
+  "name": "bookngo-unified",
+  "version": "1.0.0",
+  "description": "Unified Book & Go Project",
+  "scripts": {
+    "start:backend": "concurrently \"cd UserManagement/backend && npm start\" \"cd Bookings/backend && npm start\" \"cd RouteScheduling/backend && npm start\" \"cd SupplierManagement/backend && npm start\"",
+    "start:frontend": "concurrently \"cd UserManagement/frontend && npm start\" \"cd Bookings/frontend && npm start\" \"cd RouteScheduling/frontend && npm start\" \"cd SupplierManagement/frontend && npm start\" \"cd FinancialManagement/app && npm run dev\"",
+    "start:all": "npm run start:backend & npm run start:frontend",
+    "install:all": "concurrently \"cd UserManagement/backend && npm install\" \"cd UserManagement/frontend && npm install\" \"cd Bookings/backend && npm install\" \"cd Bookings/frontend && npm install\" \"cd FinancialManagement/app && npm install\" \"cd RouteScheduling/backend && npm install\" \"cd RouteScheduling/frontend && npm install\" \"cd SupplierManagement/backend && npm install\" \"cd SupplierManagement/frontend && npm install\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
